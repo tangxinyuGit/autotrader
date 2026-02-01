@@ -12,6 +12,7 @@
     *   **卖出**: 估值过热 (PE分位 > 70%) 或 情绪狂热 (乖离率 > 15%)。
 4.  **回测 (Backtest)**: 基于 `Backtrader` 框架的历史回测 (2018年至今)。
 5.  **自动化 (Automation)**: 每日定时任务 (15:30)，自动更新数据、判断信号并通过 PushPlus/邮件 发送通知。
+*   **可视化 (Dashboard)**: 基于 Streamlit 的交互式 Web 仪表盘，展示行情、策略状态和回测结果。
 
 ## 安装说明
 
@@ -65,7 +66,17 @@ python main.py
 python main.py --once
 ```
 
-### 4. 配置通知
+### 4. 启动可视化看板
+
+启动 Web 仪表盘，查看实时行情、策略信号和网格交易位置：
+
+```bash
+streamlit run dashboard.py
+```
+
+浏览器会自动打开 (默认 http://localhost:8501)。
+
+### 5. 配置通知
 
 在 `notifier.py` 文件中配置你的推送服务 Token (推荐使用 PushPlus)：
 

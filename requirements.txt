@@ -5,3 +5,5 @@ requests
 schedule
 matplotlib
 sqlalchemy
+streamlit
+plotly
