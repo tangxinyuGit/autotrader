@@ -7,12 +7,17 @@
 1.  **数据层 (Data Layer)**: 使用 `AkShare` 获取创业板指的历史行情、估值数据 (PE-TTM/PB)、宏观数据 (十年期国债收益率) 和北向资金流向。数据存储在 SQLite 数据库中。
 2.  **信号层 (Signal Layer)**: 计算 PE 分位 (5年/10年)、20日均线乖离率、成交量比率 (量能萎缩信号) 等核心指标。
 3.  **策略层 (Strategy Layer)**:
-    *   **买入**: 估值低 (PE分位 < 30%) 且 量能萎缩 (5日均量 < 60日均量的 0.6)。
+    *   **核心引擎**: 策略逻辑由 `decision_engine.py` 统一管理，确保回测、实盘和看板逻辑一致。
+    *   **买入条件**:
+        *   **估值**: PE分位 < 40% (原30%，已优化)。
+        *   **情绪**: 量能萎缩 (5日均量 < 60日均量的 1.2倍)。
+        *   **宏观滤网 (新增)**: 十年期国债收益率需处于下行趋势 (Liquidity Check)。
     *   **网格加仓**: 持仓亏损 5% 时加仓一档 (最多 3 档，总仓位上限 30%)。
     *   **卖出**: 估值过热 (PE分位 > 70%) 或 情绪狂热 (乖离率 > 15%)。
 4.  **回测 (Backtest)**: 基于 `Backtrader` 框架的历史回测 (2018年至今)。
 5.  **自动化 (Automation)**: 每日定时任务 (15:30)，自动更新数据、判断信号并通过 PushPlus/邮件 发送通知。
-*   **可视化 (Dashboard)**: 基于 Streamlit 的交互式 Web 仪表盘，展示行情、策略状态和回测结果。
+*   **可视化 (Dashboard)**: 基于 Streamlit 的交互式 Web 仪表盘。
+    *   **实时调参**: 支持在侧边栏动态调整策略参数 (PE/Vol 阈值、是否启用宏观滤网等) 并实时保存配置。
 
 ## 安装说明
 
@@ -54,7 +59,7 @@ python run_backtest.py
 
 ### 3. 开启自动化监控
 
-运行主程序，开启每日定时任务 (默认 15:30 运行)：
+运行主程序，开启每日定时任务 (默认 15:30 运行)。主程序会加载 `strategy_config.json` 中的配置：
 
 ```bash
 python main.py
@@ -74,7 +79,7 @@ python main.py --once
 streamlit run dashboard.py
 ```
 
-浏览器会自动打开 (默认 http://localhost:8501)。
+浏览器会自动打开 (默认 http://localhost:8501)。在看板中调整的参数会自动保存，并立即生效于自动化监控任务。
 
 ### 5. 配置通知
 
@@ -91,13 +96,16 @@ def notify(title, message):
 
 ## 文件结构
 
-*   `data_loader.py`: 数据获取与存储 (ETL)。
-*   `signal_calculator.py`: 核心指标计算。
+*   `main.py`: 自动化主程序 (入口)。
+*   `dashboard.py`: 可视化看板 (Streamlit)。
+*   `decision_engine.py`: **[新增]** 核心交易决策引擎。
+*   `config.py`: **[新增]** 策略配置管理。
 *   `strategy.py`: Backtrader 策略类定义。
 *   `run_backtest.py`: 回测脚本。
-*   `main.py`: 自动化主程序 (入口)。
+*   `data_loader.py`: 数据获取与存储 (ETL)。
+*   `signal_calculator.py`: 核心指标计算。
+*   `optimize_strategy.py`: **[新增]** 策略参数自动优化脚本。
 *   `notifier.py`: 通知模块 (PushPlus/Email)。
-*   `requirements.txt`: 项目依赖。
 
 ## 注意事项
 
