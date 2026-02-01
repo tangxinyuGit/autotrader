@@ -79,7 +79,7 @@ python main.py --once
 streamlit run dashboard.py
 ```
 
-浏览器会自动打开 (默认 http://localhost:8501)。在看板中调整的参数会自动保存，并立即生效于自动化监控任务。
+浏览器会自动打开 (默认 `http://localhost:8501`)。在看板中调整的参数会自动保存，并立即生效于自动化监控任务。
 
 ### 5. 配置通知
 
