@@ -17,8 +17,8 @@ class ChiNextStrategy(bt.Strategy):
         ('grid_drop_pct', 0.05),
         ('sell_pe_threshold', 0.70),
         ('sell_bias_threshold', 0.15),
-        ('position_step_pct', 0.10), # 10% of portfolio per trade
-        ('max_position_pct', 0.30),  # Max 30%
+        ('position_step_pct', 0.30), # 30% of portfolio per trade
+        ('max_position_pct', 0.90),  # Max 90%
     )
 
     def __init__(self):
@@ -26,6 +26,8 @@ class ChiNextStrategy(bt.Strategy):
         self.vol_ratio = self.data.vol_ratio
         self.bias = self.data.bias_20
         self.price = self.data.close
+        # Add 60-day Moving Average for trend protection
+        self.ma60 = bt.indicators.SMA(self.data.close, period=60)
 
         self.last_buy_price = None
         self.order = None
@@ -66,8 +68,9 @@ class ChiNextStrategy(bt.Strategy):
         # --- SELL LOGIC ---
         # If we hold a position, check sell conditions
         if self.position:
-            if self.pe_rank[0] > self.params.sell_pe_threshold:
-                self.log(f'SELL SIGNAL: Valuation Overheated (PE Rank: {self.pe_rank[0]:.2f})')
+            # Only sell if PE is high AND price is below MA60 (trend protection)
+            if self.pe_rank[0] > self.params.sell_pe_threshold and self.price[0] < self.ma60[0]:
+                self.log(f'SELL SIGNAL: Valuation Overheated AND Below MA60 (PE Rank: {self.pe_rank[0]:.2f}, Price: {self.price[0]:.2f}, MA60: {self.ma60[0]:.2f})')
                 self.close()
                 return
 

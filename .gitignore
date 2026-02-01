@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 *.db
 trade_state.json
+venv/
