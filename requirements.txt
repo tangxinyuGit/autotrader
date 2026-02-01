@@ -1,0 +1,9 @@
+akshare
+backtrader
+pandas
+requests
+schedule
+matplotlib
+sqlalchemy
+streamlit
+plotly
