@@ -27,6 +27,7 @@ def calculate_signals(df):
 
     # 2. Sentiment: Bias 20
     df['ma20'] = df['close'].rolling(window=20).mean()
+    df['ma60'] = df['close'].rolling(window=60).mean()
     df['bias_20'] = (df['close'] - df['ma20']) / df['ma20']
 
     # 3. Sentiment: Volume Ratio (MA5 / MA60)

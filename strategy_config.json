@@ -1,0 +1,11 @@
+{
+    "buy_pe_threshold": 0.4,
+    "buy_vol_threshold": 1.2,
+    "sell_pe_threshold": 0.7,
+    "sell_bias_threshold": 0.15,
+    "grid_drop_pct": 0.05,
+    "position_step_pct": 0.3,
+    "max_position_pct": 0.9,
+    "enable_macro_filter": true,
+    "enable_northbound_filter": false
+}

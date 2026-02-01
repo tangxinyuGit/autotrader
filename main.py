@@ -8,6 +8,8 @@ from datetime import datetime
 import data_loader
 import signal_calculator
 import notifier
+from config import StrategyConfig
+from decision_engine import DecisionEngine
 
 STATE_FILE = "trade_state.json"
 
@@ -39,74 +41,73 @@ def job():
     positions = state.get("positions", [])
     last_buy_price = state.get("last_buy_price")
 
-    # Current values
-    price = latest['close']
-    pe_rank = latest['pe_rank_5y']
-    vol_ratio = latest['vol_ratio']
-    bias = latest['bias_20']
+    # 4. Prepare Decision Engine
+    config = StrategyConfig()
+    engine = DecisionEngine(config)
 
-    # Strategy Params
-    BUY_PE = 0.30
-    BUY_VOL = 0.60
-    SELL_PE = 0.70
-    SELL_BIAS = 0.15
-    GRID_DROP = 0.05
-    MAX_POS = 3 # Max 3 units (30%)
+    # Map Signals
+    data_dict = {
+        'price': latest['close'],
+        'pe_rank_5y': latest['pe_rank_5y'],
+        'vol_ratio': latest['vol_ratio'],
+        'bias_20': latest['bias_20'],
+        'ma60': latest['ma60'],
+        'bond_trend_down': latest['bond_trend_down'],
+        'north_inflow_20': latest['north_inflow_20']
+    }
+
+    # 5. Analyze
+    decision, reason = engine.analyze(data_dict, len(positions), last_buy_price)
 
     action = "HOLD"
-    reason = "No signal"
 
-    # --- LOGIC ---
+    # 6. Execute Logic (Mock)
+    if decision == "SELL":
+        action = "SELL"
+        state["positions"] = []
+        state["last_buy_price"] = None
 
-    # Sell Logic
-    if len(positions) > 0:
-        if pe_rank > SELL_PE:
-            action = "SELL"
-            reason = f"Valuation Overheated (PE Rank {pe_rank:.2%})"
-            # Reset state
-            state["positions"] = []
-            state["last_buy_price"] = None
-        elif bias > SELL_BIAS:
-            action = "SELL"
-            reason = f"Sentiment Manic (Bias {bias:.2%})"
-            state["positions"] = []
-            state["last_buy_price"] = None
+    elif decision == "BUY_INITIAL":
+        action = "BUY (Initial)"
+        state["positions"].append(data_dict['price'])
+        state["last_buy_price"] = data_dict['price']
 
-    # Buy Logic (if not selling)
-    if action == "HOLD": # check buy
-        # Initial Entry
-        if len(positions) == 0:
-            if pe_rank < BUY_PE and vol_ratio < BUY_VOL:
-                action = "BUY (Initial)"
-                reason = f"Cheap & Frozen (PE Rank {pe_rank:.2%}, VolRatio {vol_ratio:.2f})"
-                state["positions"].append(price)
-                state["last_buy_price"] = price
-        # Grid Add
-        elif len(positions) < MAX_POS:
-            if last_buy_price and price < last_buy_price * (1 - GRID_DROP):
-                action = "BUY (Grid)"
-                reason = f"Price Drop (Price {price:.2f} < {last_buy_price:.2f} * 0.95)"
-                state["positions"].append(price)
-                state["last_buy_price"] = price
+    elif decision == "BUY_GRID":
+        # Check max units (Simplification: 3 units max)
+        if len(positions) < 3:
+            action = "BUY (Grid)"
+            state["positions"].append(data_dict['price'])
+            state["last_buy_price"] = data_dict['price']
+        else:
+            action = "HOLD"
+            reason = "Buy Signal (Grid) but Max Position Reached"
 
     # Save State
     if action != "HOLD":
         save_state(state)
 
-    # 4. Notify
+    # Helper for display
+    def fmt_bool(val):
+        return "YES" if val else "NO"
+
+    # 7. Notify
     msg = f"""
 Date: {latest.name.date()}
-Price: {price:.2f}
-PE Rank: {pe_rank:.2%}
-Vol Ratio: {vol_ratio:.2f}
-Bias: {bias:.2%}
-Positions: {len(positions)}/{MAX_POS}
+Price: {data_dict['price']:.2f}
+PE Rank: {data_dict['pe_rank_5y']:.2%}
+Vol Ratio: {data_dict['vol_ratio']:.2f}
+Bias: {data_dict['bias_20']:.2%}
+Macro (Bond < MA60): {fmt_bool(data_dict['bond_trend_down'])}
+Northbound (20d): {data_dict['north_inflow_20']:.2f}
+
+Positions: {len(positions)}/3
 
 Action: {action}
 Reason: {reason}
     """
 
     notifier.notify(f"ChiNext Signal: {action}", msg)
+    print(msg)
 
 def main():
     parser = argparse.ArgumentParser()
